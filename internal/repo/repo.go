@@ -1,5 +1,9 @@
 package repo
 
+/*
+ Наше in-memory хранилище, п.3 из Readme
+*/
+
 import "sync"
 
 type Repo struct {
