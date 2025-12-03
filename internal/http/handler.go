@@ -53,7 +53,8 @@ func GetMux(r RepoInterface) *http.ServeMux {
 }
 
 type ItemsResponse struct {
-	Items []*repo.Item `json:"items"`
+	Items      []*repo.Item `json:"items"`
+	TotalPrice uint32       `json:"total_price"`
 }
 
 func getCart(r RepoInterface) http.HandlerFunc {
@@ -65,7 +66,9 @@ func getCart(r RepoInterface) http.HandlerFunc {
 			return
 		}
 		data := r.GetItems(int(id))
-		items := ItemsResponse{Items: data}
+		// Заглушка под тотал_прайс
+		totalPrice := uint32(0)
+		items := ItemsResponse{Items: data, TotalPrice: totalPrice}
 		WriteJSONResponse(w, items, nil)
 	}
 }
