@@ -12,12 +12,12 @@ type Repo struct {
 }
 
 type Item struct {
-	SkuID int
-	Count int
+	SkuID int `json:"sku_id"`
+	Count int `json:"count"`
 }
 
-func NewRepo() Repo {
-	return Repo{userIDMap: make(map[int][]*Item)}
+func NewRepo() *Repo {
+	return &Repo{userIDMap: make(map[int][]*Item)}
 }
 
 func (repo *Repo) AddItem(userID int, items []*Item) {
