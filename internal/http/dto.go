@@ -1,6 +1,9 @@
 package http
 
-import "learn1/internal/repo"
+import (
+	validation "github.com/go-ozzo/ozzo-validation"
+	"learn1/internal/repo"
+)
 
 // Структура унифицированного овтета
 type Response struct {
@@ -11,6 +14,22 @@ type Response struct {
 // Структура для POST, т.к. по условию coutn - body в запросе.
 type addItemRequest struct {
 	Count uint64 `json:"count"`
+}
+
+func (a addItemRequest) Validate() error {
+	return validation.ValidateStruct(&a, validation.Field(&a.Count, validation.Required, validation.Min(1)))
+}
+
+type ValidURL struct {
+	UserID int64 `json:"user_id"`
+	SkuID  int64 `json:"sku_id"`
+}
+
+func (v ValidURL) Validate() error {
+	return validation.ValidateStruct(&v,
+		validation.Field(&v.UserID, validation.Min(1)),
+		validation.Field(&v.SkuID, validation.Min(1)),
+	)
 }
 
 // Пока для ответа используется эта структура

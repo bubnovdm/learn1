@@ -12,13 +12,45 @@ func NewResponse(data any, err string) *Response {
 	return &Response{Data: data, Error: err}
 }
 
-// TODO: допилить правильные коды ответов под каждые ручки, мб даже в аргументы добавить код
-func WriteJSONResponse(w http.ResponseWriter, data any, err error) {
-	errorString := ""
-	if err != nil {
-		errorString = err.Error()
+type ServerOptions struct {
+	data       any
+	statusCode int
+	err        error
+}
+
+type OptParams func(*ServerOptions)
+
+func WithData(data any) OptParams {
+	return func(s *ServerOptions) {
+		s.data = data
 	}
-	r := NewResponse(data, errorString)
+}
+
+func WithStatusCode(statusCode int) OptParams {
+	return func(s *ServerOptions) {
+		s.statusCode = statusCode
+	}
+}
+
+func WithError(err error) OptParams {
+	return func(s *ServerOptions) {
+		s.err = err
+	}
+}
+
+// TODO: допилить правильные коды ответов под каждые ручки, мб даже в аргументы добавить код
+func WriteJSONResponse(w http.ResponseWriter, options ...OptParams) {
+	server := &ServerOptions{
+		statusCode: http.StatusOK,
+	}
+	for _, opt := range options {
+		opt(server)
+	}
+	errorString := ""
+	if server.err != nil {
+		errorString = server.err.Error()
+	}
+	r := NewResponse(server.data, errorString)
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -29,7 +61,7 @@ func WriteJSONResponse(w http.ResponseWriter, data any, err error) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(server.statusCode)
 	w.Write(resp)
 }
 
@@ -49,30 +81,12 @@ func GetMux(r RepoInterface) *http.ServeMux {
 	return mux
 }
 
-/*
 func getCart(r RepoInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		idString := req.PathValue("user_id")
 		id, err := strconv.ParseInt(idString, 10, 64)
 		if err != nil {
-			WriteJSONResponse(w, nil, err)
-			return
-		}
-		data := r.GetItems(int(id))
-		// Заглушка под тотал_прайс
-		totalPrice := uint32(0)
-		items := ItemsResponse{Items: data, TotalPrice: totalPrice}
-		WriteJSONResponse(w, items, nil)
-	}
-}
-*/
-
-func getCart(r RepoInterface) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		idString := req.PathValue("user_id")
-		id, err := strconv.ParseInt(idString, 10, 64)
-		if err != nil {
-			WriteJSONResponse(w, nil, err)
+			WriteJSONResponse(w, WithError(err))
 			return
 		}
 		itemsFromRepo := r.GetItems(int(id))
@@ -83,25 +97,25 @@ func getCart(r RepoInterface) http.HandlerFunc {
 
 		for _, item := range itemsFromRepo {
 			sku := int64(item.SkuID)
-			name, price, err := client.TempResp(sku)
+			productResult, err := client.GetProduct(sku)
 			if err != nil {
-				WriteJSONResponse(w, nil, err)
-				w.WriteHeader(http.StatusNotFound)
+				WriteJSONResponse(w, WithError(err), WithStatusCode(http.StatusNotFound))
 				return
 			}
 
 			cartResponse.Items = append(cartResponse.Items, CartItemResponse{
 				SkuID: sku,
-				Name:  name,
+				Name:  productResult.Name,
 				Count: uint16(item.Count),
-				Price: price})
+				Price: productResult.Price})
 
-			totalPrice += price * uint32(item.Count)
+			// Можно реализовать через пакет для денег
+			totalPrice += productResult.Price * uint32(item.Count)
 			cartResponse.TotalPrice = totalPrice
 
 		}
 
-		WriteJSONResponse(w, cartResponse, nil)
+		WriteJSONResponse(w, WithData(cartResponse))
 	}
 }
 
@@ -111,24 +125,40 @@ func postAddItem(r RepoInterface) http.HandlerFunc {
 		skuIdString := req.PathValue("sku_id")
 		id, err := strconv.ParseInt(idString, 10, 64)
 		if err != nil {
-			WriteJSONResponse(w, nil, err)
+			WriteJSONResponse(w, WithError(err))
 			return
 		}
 		skuId, err := strconv.ParseInt(skuIdString, 10, 64)
 		if err != nil {
-			WriteJSONResponse(w, nil, err)
+			WriteJSONResponse(w, WithError(err))
 			return
+		}
+		validUrl := ValidURL{UserID: id, SkuID: skuId}
+		err = validUrl.Validate()
+		if err != nil {
+			WriteJSONResponse(w, WithError(err))
 		}
 		var body addItemRequest
 		err = json.NewDecoder(req.Body).Decode(&body)
 		if err != nil {
-			WriteJSONResponse(w, nil, err)
+			WriteJSONResponse(w, WithError(err))
+			return
+		}
+		err = body.Validate()
+		if err != nil {
+			WriteJSONResponse(w, WithError(err), WithStatusCode(http.StatusBadRequest))
+		}
+		_, err = client.GetProduct(skuId)
+		if err != nil {
+			WriteJSONResponse(w,
+				WithError(err),
+				WithStatusCode(http.StatusNotFound))
 			return
 		}
 		r.AddItem(int(id), []*repo.Item{
 			{SkuID: int(skuId), Count: int(body.Count)},
 		})
-		WriteJSONResponse(w, nil, nil)
+		WriteJSONResponse(w)
 	}
 }
 
@@ -138,16 +168,16 @@ func deleteItem(r RepoInterface) http.HandlerFunc {
 		skuIdString := req.PathValue("sku_id")
 		id, err := strconv.ParseInt(idString, 10, 64)
 		if err != nil {
-			WriteJSONResponse(w, nil, err)
+			WriteJSONResponse(w, WithError(err))
 			return
 		}
 		skuId, err := strconv.ParseInt(skuIdString, 10, 64)
 		if err != nil {
-			WriteJSONResponse(w, nil, err)
+			WriteJSONResponse(w, WithError(err))
 			return
 		}
 		r.RemoveItem(int(id), int(skuId))
-		WriteJSONResponse(w, nil, nil)
+		WriteJSONResponse(w, WithStatusCode(http.StatusNoContent))
 	}
 }
 
@@ -156,10 +186,10 @@ func deleteCart(r RepoInterface) http.HandlerFunc {
 		idString := req.PathValue("user_id")
 		id, err := strconv.ParseInt(idString, 10, 64)
 		if err != nil {
-			WriteJSONResponse(w, nil, err)
+			WriteJSONResponse(w, WithError(err))
 			return
 		}
 		r.ClearCart(int(id))
-		w.WriteHeader(http.StatusNoContent)
+		WriteJSONResponse(w, WithStatusCode(http.StatusNoContent))
 	}
 }
