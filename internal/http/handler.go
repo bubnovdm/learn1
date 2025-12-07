@@ -2,45 +2,42 @@ package http
 
 import (
 	"encoding/json"
+	"learn1/internal/client"
 	"learn1/internal/repo"
 	"net/http"
 	"strconv"
 )
 
-type Response struct {
-	Data  any    `json:"data"`
-	Error string `json:"error,omitempty"`
-}
-type addItemRequest struct {
-	Count uint64 `json:"count"`
-}
-
 func NewResponse(data any, err string) *Response {
 	return &Response{Data: data, Error: err}
 }
 
+// TODO: допилить правильные коды ответов под каждые ручки, мб даже в аргументы добавить код
 func WriteJSONResponse(w http.ResponseWriter, data any, err error) {
 	errorString := ""
 	if err != nil {
 		errorString = err.Error()
 	}
 	r := NewResponse(data, errorString)
+
 	w.Header().Set("Content-Type", "application/json")
-	ans, e := json.Marshal(r)
+
+	resp, e := json.Marshal(r)
 	if e != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(e.Error()))
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
-	w.Write(ans)
+	w.Write(resp)
 }
 
 type RepoInterface interface {
 	GetItems(userID int) []*repo.Item
 	AddItem(userID int, items []*repo.Item)
 	RemoveItem(userID int, skuID int)
-	ClearCard(userID int)
+	ClearCart(userID int)
 }
 
 func GetMux(r RepoInterface) *http.ServeMux {
@@ -52,11 +49,7 @@ func GetMux(r RepoInterface) *http.ServeMux {
 	return mux
 }
 
-type ItemsResponse struct {
-	Items      []*repo.Item `json:"items"`
-	TotalPrice uint32       `json:"total_price"`
-}
-
+/*
 func getCart(r RepoInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		idString := req.PathValue("user_id")
@@ -70,6 +63,45 @@ func getCart(r RepoInterface) http.HandlerFunc {
 		totalPrice := uint32(0)
 		items := ItemsResponse{Items: data, TotalPrice: totalPrice}
 		WriteJSONResponse(w, items, nil)
+	}
+}
+*/
+
+func getCart(r RepoInterface) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		idString := req.PathValue("user_id")
+		id, err := strconv.ParseInt(idString, 10, 64)
+		if err != nil {
+			WriteJSONResponse(w, nil, err)
+			return
+		}
+		itemsFromRepo := r.GetItems(int(id))
+		// TODO: сортировка по skuID
+
+		var cartResponse CartResponse
+		var totalPrice uint32
+
+		for _, item := range itemsFromRepo {
+			sku := int64(item.SkuID)
+			name, price, err := client.TempResp(sku)
+			if err != nil {
+				WriteJSONResponse(w, nil, err)
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			cartResponse.Items = append(cartResponse.Items, CartItemResponse{
+				SkuID: sku,
+				Name:  name,
+				Count: uint16(item.Count),
+				Price: price})
+
+			totalPrice += price * uint32(item.Count)
+			cartResponse.TotalPrice = totalPrice
+
+		}
+
+		WriteJSONResponse(w, cartResponse, nil)
 	}
 }
 
@@ -127,7 +159,7 @@ func deleteCart(r RepoInterface) http.HandlerFunc {
 			WriteJSONResponse(w, nil, err)
 			return
 		}
-		r.ClearCard(int(id))
+		r.ClearCart(int(id))
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

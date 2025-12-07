@@ -38,7 +38,7 @@ func TestRepo_AddItem(t *testing.T) {
 
 func TestRepo_ClearCard(t *testing.T) {
 	repo := &Repo{userIDMap: map[int][]*Item{1: []*Item{{SkuID: 12345, Count: 2}}}}
-	repo.ClearCard(1)
+	repo.ClearCart(1)
 	require.Empty(t, repo.userIDMap)
 }
 

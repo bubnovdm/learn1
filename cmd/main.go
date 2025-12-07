@@ -10,5 +10,6 @@ func main() {
 	r := repo.NewRepo()
 	r.AddItem(1, []*repo.Item{{SkuID: 1, Count: 5}})
 	mux := h.GetMux(r)
-	http.ListenAndServe(":3000", mux)
+	loggingMux := h.LoggingMiddleware(mux)
+	http.ListenAndServe(":3000", loggingMux)
 }

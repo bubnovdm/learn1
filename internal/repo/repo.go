@@ -41,7 +41,7 @@ func (repo *Repo) AddItem(userID int, items []*Item) {
 	repo.mu.Unlock()
 }
 
-func (repo *Repo) ClearCard(userID int) {
+func (repo *Repo) ClearCart(userID int) {
 	repo.mu.Lock()
 	delete(repo.userIDMap, userID)
 	repo.mu.Unlock()

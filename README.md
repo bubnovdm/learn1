@@ -127,21 +127,21 @@
 
 ```json
 {
-    "items" : [
-        {
-            "sku_id": 2958025,
-            "name": "Roxy Music. Stranded. Remastered Edition",
-            "count": 2,
-            "price": 1028
-        },
-        {
-            "sku_id": 773297411,
-            "name": "Кроссовки Nike JORDAN",
-            "count": 1,
-            "price": 2202
-        }
-    ],
-    "total_price": 4258
+  "items" : [
+    {
+      "sku_id": 2958025,
+      "name": "Roxy Music. Stranded. Remastered Edition",
+      "count": 2,
+      "price": 1028
+    },
+    {
+      "sku_id": 773297411,
+      "name": "Кроссовки Nike JORDAN",
+      "count": 1,
+      "price": 2202
+    }
+  ],
+  "total_price": 4258
 }
 ```
 
@@ -203,10 +203,10 @@ Response
 - с помощью команды `make run-all` можно запустить приложение
 - приложение слушает http запросы на порту 8082
 - реализованы АПИ методы
-    - POST   /user/<user_id>/cart/<sku_id>
-    - DELETE /user/<user_id>/cart/<sku_id>
-    - DELETE /user/<user_id>/cart
-    - GET    /user/<user_id>/cart
+  - POST   /user/<user_id>/cart/<sku_id>
+  - DELETE /user/<user_id>/cart/<sku_id>
+  - DELETE /user/<user_id>/cart
+  - GET    /user/<user_id>/cart
 - методы реализуют заявленную бизнес логику
 - методы валидируют запросы и отдают описанные в спецификации коды ошибок
 - информация о пользователях и их состоянии корзины хранится в памяти приложения
