@@ -8,7 +8,7 @@ import (
 
 func main() {
 	r := repo.NewRepo()
-	r.AddItem(1, []*repo.Item{{SkuID: 1, Count: 5}})
+	r.AddItem(1, []*repo.Item{{SkuID: 5415913, Count: 1}})
 	mux := h.GetMux(r)
 	loggingMux := h.LoggingMiddleware(mux)
 	http.ListenAndServe(":3000", loggingMux)

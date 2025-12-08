@@ -12,8 +12,8 @@ type Repo struct {
 }
 
 type Item struct {
-	SkuID int `json:"sku_id"`
-	Count int `json:"count"`
+	SkuID int    `json:"sku_id"`
+	Count uint16 `json:"count"`
 }
 
 func NewRepo() *Repo {

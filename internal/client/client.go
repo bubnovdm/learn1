@@ -39,11 +39,26 @@ func getProduct(skuID int64) (g GetProductResponse, err error) {
 		return GetProductResponse{}, backoff.Permanent(err)
 	}
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqBytes))
+	// Тут только сетевые ошибки нашего post, в err не будет кодов, которые мы будем обрабатывать. Вынес ифы отдельно.
 	if err != nil {
-		if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == 420 {
-			return GetProductResponse{}, err
-		}
 		return GetProductResponse{}, backoff.Permanent(err)
+	}
+	// Чекаем на 429 и 420
+	if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == 420 {
+		return GetProductResponse{}, err
+	}
+	// Чекаем на неок (типа 404), если получаем её, то не пытаемся ретраить а сразу даём перманентную ошибку
+	if resp.StatusCode != http.StatusOK {
+		//return GetProductResponse{}, backoff.Permanent(err)
+
+		// Тут полупонятная херня, писал не сам)
+		// Может как-то можно более аккуратно.
+		var errResp map[string]any
+		json.NewDecoder(resp.Body).Decode(&errResp)
+
+		return GetProductResponse{}, backoff.Permanent(
+			fmt.Errorf("Product Service returned %d: %v", resp.StatusCode, errResp),
+		)
 	}
 	defer resp.Body.Close()
 

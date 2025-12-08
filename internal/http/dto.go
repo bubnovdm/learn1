@@ -2,7 +2,6 @@ package http
 
 import (
 	validation "github.com/go-ozzo/ozzo-validation"
-	"learn1/internal/repo"
 )
 
 // Структура унифицированного овтета
@@ -13,7 +12,7 @@ type Response struct {
 
 // Структура для POST, т.к. по условию coutn - body в запросе.
 type addItemRequest struct {
-	Count uint64 `json:"count"`
+	Count int `json:"count"`
 }
 
 func (a addItemRequest) Validate() error {
@@ -30,12 +29,6 @@ func (v ValidURL) Validate() error {
 		validation.Field(&v.UserID, validation.Min(1)),
 		validation.Field(&v.SkuID, validation.Min(1)),
 	)
-}
-
-// Пока для ответа используется эта структура
-type ItemsResponse struct {
-	Items      []*repo.Item `json:"items"`
-	TotalPrice uint32       `json:"total_price"`
 }
 
 // Наверное как-то так должна выглядель итоговая структура ответа (без суммы)

@@ -38,7 +38,6 @@ func WithError(err error) OptParams {
 	}
 }
 
-// TODO: допилить правильные коды ответов под каждые ручки, мб даже в аргументы добавить код
 func WriteJSONResponse(w http.ResponseWriter, options ...OptParams) {
 	server := &ServerOptions{
 		statusCode: http.StatusOK,
@@ -106,7 +105,7 @@ func getCart(r RepoInterface) http.HandlerFunc {
 			cartResponse.Items = append(cartResponse.Items, CartItemResponse{
 				SkuID: sku,
 				Name:  productResult.Name,
-				Count: uint16(item.Count),
+				Count: item.Count,
 				Price: productResult.Price})
 
 			// Можно реализовать через пакет для денег
@@ -137,6 +136,7 @@ func postAddItem(r RepoInterface) http.HandlerFunc {
 		err = validUrl.Validate()
 		if err != nil {
 			WriteJSONResponse(w, WithError(err))
+			return
 		}
 		var body addItemRequest
 		err = json.NewDecoder(req.Body).Decode(&body)
@@ -147,6 +147,7 @@ func postAddItem(r RepoInterface) http.HandlerFunc {
 		err = body.Validate()
 		if err != nil {
 			WriteJSONResponse(w, WithError(err), WithStatusCode(http.StatusBadRequest))
+			return
 		}
 		_, err = client.GetProduct(skuId)
 		if err != nil {
@@ -156,7 +157,7 @@ func postAddItem(r RepoInterface) http.HandlerFunc {
 			return
 		}
 		r.AddItem(int(id), []*repo.Item{
-			{SkuID: int(skuId), Count: int(body.Count)},
+			{SkuID: int(skuId), Count: uint16(body.Count)},
 		})
 		WriteJSONResponse(w)
 	}
