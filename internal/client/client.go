@@ -5,9 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/cenkalti/backoff/v5"
 	"net/http"
 	"net/url"
+
+	"github.com/cenkalti/backoff/v5"
 )
 
 const (
@@ -25,6 +26,27 @@ type GetProductResponse struct {
 	Price uint32 `json:"price"`
 }
 
+type Client struct {
+	productServiceURL string
+	token             string
+}
+
+func NewClient(productServiceURL string, token string) *Client {
+	return &Client{
+		productServiceURL: productServiceURL,
+		token:             token,
+	}
+}
+
+//TODO: вспомнить код
+//TODO: перенести код GetProduct на структуру
+//TODO: новый интерфейс для GetProduct
+//TODO: handler только для интерфейса
+//TODO: клиент передаётся через обертку
+//TODO: в тесте реализация интерфейса, которая возвращает заглушку
+//TODO: тест не ходит в реальный ProductService, а в заглушку
+//TODO: остальные тесты
+
 func getProduct(skuID int64) (g GetProductResponse, err error) {
 	reqBody := getProductRequest{
 		Token: token,
@@ -40,6 +62,14 @@ func getProduct(skuID int64) (g GetProductResponse, err error) {
 	}
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqBytes))
 	// Тут только сетевые ошибки нашего post, в err не будет кодов, которые мы будем обрабатывать. Вынес ифы отдельно.
+
+	// Попробую через https://pkg.go.dev/errors
+	/*
+		var ErrProductNotFound = errors.New("product not found")
+		var ErrProductRateLimitExceeded = errors.New("product rate limit exceeded")
+		var ErrProductInternalServerError = errors.New("product internal server error")
+	*/
+
 	if err != nil {
 		return GetProductResponse{}, backoff.Permanent(err)
 	}
@@ -71,7 +101,7 @@ func getProduct(skuID int64) (g GetProductResponse, err error) {
 	return GetProductResponse{Name: productResp.Name, Price: productResp.Price}, nil
 }
 
-func GetProduct(skuID int64) (g GetProductResponse, err error) {
+func (Client) GetProduct(skuID int64) (g GetProductResponse, err error) {
 	result, err := backoff.Retry(context.TODO(),
 		func() (GetProductResponse, error) { return getProduct(skuID) },
 		backoff.WithBackOff(backoff.NewExponentialBackOff()),

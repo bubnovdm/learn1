@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"learn1/internal/client"
 	"learn1/internal/repo"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -114,6 +115,7 @@ func getCart(r RepoInterface) http.HandlerFunc {
 
 		}
 
+		log.Printf("response: %v", cartResponse)
 		WriteJSONResponse(w, WithData(cartResponse))
 	}
 }
