@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	productServiceURL = "http://route256.pavl.uk:8080"
-	token             = "testtoken"
+	ProductServiceURL = "http://route256.pavl.uk:8080"
+	Token             = "testtoken"
 )
 
 type getProductRequest struct {
@@ -38,6 +38,10 @@ func NewClient(productServiceURL string, token string) *Client {
 	}
 }
 
+type ProductClient interface {
+	GetProduct(skuID int64) (GetProductResponse, error)
+}
+
 //TODO: вспомнить код
 //TODO: перенести код GetProduct на структуру
 //TODO: новый интерфейс для GetProduct
@@ -49,26 +53,18 @@ func NewClient(productServiceURL string, token string) *Client {
 
 func getProduct(skuID int64) (g GetProductResponse, err error) {
 	reqBody := getProductRequest{
-		Token: token,
+		Token: Token,
 		SKU:   skuID,
 	}
 	reqBytes, err := json.Marshal(reqBody)
 	if err != nil {
 		return GetProductResponse{}, backoff.Permanent(err)
 	}
-	url, err := url.JoinPath(productServiceURL, "get_product")
+	url, err := url.JoinPath(ProductServiceURL, "get_product")
 	if err != nil {
 		return GetProductResponse{}, backoff.Permanent(err)
 	}
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(reqBytes))
-	// Тут только сетевые ошибки нашего post, в err не будет кодов, которые мы будем обрабатывать. Вынес ифы отдельно.
-
-	// Попробую через https://pkg.go.dev/errors
-	/*
-		var ErrProductNotFound = errors.New("product not found")
-		var ErrProductRateLimitExceeded = errors.New("product rate limit exceeded")
-		var ErrProductInternalServerError = errors.New("product internal server error")
-	*/
 
 	if err != nil {
 		return GetProductResponse{}, backoff.Permanent(err)

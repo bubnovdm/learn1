@@ -13,6 +13,18 @@ func NewResponse(data any, err string) *Response {
 	return &Response{Data: data, Error: err}
 }
 
+type Handler struct {
+	repo   RepoInterface
+	client client.ProductClient
+}
+
+func NewHandler(r RepoInterface, c client.ProductClient) *Handler {
+	return &Handler{
+		repo:   r,
+		client: c,
+	}
+}
+
 type ServerOptions struct {
 	data       any
 	statusCode int
@@ -72,6 +84,7 @@ type RepoInterface interface {
 	ClearCart(userID int)
 }
 
+/*
 func GetMux(r RepoInterface) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/user/{user_id}/cart", getCart(r))
@@ -81,7 +94,18 @@ func GetMux(r RepoInterface) *http.ServeMux {
 	return mux
 }
 
-func getCart(r RepoInterface) http.HandlerFunc {
+*/
+
+func (h *Handler) GetMux() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/user/{user_id}/cart", h.getCart())
+	mux.HandleFunc("POST /user/{user_id}/cart/{sku_id}", h.postAddItem())
+	mux.HandleFunc("DELETE /user/{user_id}/cart/{sku_id}", h.deleteItem())
+	mux.HandleFunc("DELETE /user/{user_id}/cart", h.deleteCart())
+	return mux
+}
+
+func (h *Handler) getCart() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		idString := req.PathValue("user_id")
 		id, err := strconv.ParseInt(idString, 10, 64)
@@ -89,7 +113,7 @@ func getCart(r RepoInterface) http.HandlerFunc {
 			WriteJSONResponse(w, WithError(err))
 			return
 		}
-		itemsFromRepo := r.GetItems(int(id))
+		itemsFromRepo := h.repo.GetItems(int(id))
 		// TODO: сортировка по skuID
 
 		var cartResponse CartResponse
@@ -97,7 +121,7 @@ func getCart(r RepoInterface) http.HandlerFunc {
 
 		for _, item := range itemsFromRepo {
 			sku := int64(item.SkuID)
-			productResult, err := client.GetProduct(sku)
+			productResult, err := h.client.GetProduct(sku)
 			if err != nil {
 				WriteJSONResponse(w, WithError(err), WithStatusCode(http.StatusNotFound))
 				return
@@ -120,7 +144,7 @@ func getCart(r RepoInterface) http.HandlerFunc {
 	}
 }
 
-func postAddItem(r RepoInterface) http.HandlerFunc {
+func (h *Handler) postAddItem() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		idString := req.PathValue("user_id")
 		skuIdString := req.PathValue("sku_id")
@@ -151,21 +175,21 @@ func postAddItem(r RepoInterface) http.HandlerFunc {
 			WriteJSONResponse(w, WithError(err), WithStatusCode(http.StatusBadRequest))
 			return
 		}
-		_, err = client.GetProduct(skuId)
+		_, err = h.client.GetProduct(skuId)
 		if err != nil {
 			WriteJSONResponse(w,
 				WithError(err),
 				WithStatusCode(http.StatusNotFound))
 			return
 		}
-		r.AddItem(int(id), []*repo.Item{
+		h.repo.AddItem(int(id), []*repo.Item{
 			{SkuID: int(skuId), Count: uint16(body.Count)},
 		})
 		WriteJSONResponse(w)
 	}
 }
 
-func deleteItem(r RepoInterface) http.HandlerFunc {
+func (h *Handler) deleteItem() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		idString := req.PathValue("user_id")
 		skuIdString := req.PathValue("sku_id")
@@ -179,12 +203,12 @@ func deleteItem(r RepoInterface) http.HandlerFunc {
 			WriteJSONResponse(w, WithError(err))
 			return
 		}
-		r.RemoveItem(int(id), int(skuId))
+		h.repo.RemoveItem(int(id), int(skuId))
 		WriteJSONResponse(w, WithStatusCode(http.StatusNoContent))
 	}
 }
 
-func deleteCart(r RepoInterface) http.HandlerFunc {
+func (h *Handler) deleteCart() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		idString := req.PathValue("user_id")
 		id, err := strconv.ParseInt(idString, 10, 64)
@@ -192,7 +216,7 @@ func deleteCart(r RepoInterface) http.HandlerFunc {
 			WriteJSONResponse(w, WithError(err))
 			return
 		}
-		r.ClearCart(int(id))
+		h.repo.ClearCart(int(id))
 		WriteJSONResponse(w, WithStatusCode(http.StatusNoContent))
 	}
 }
