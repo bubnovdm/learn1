@@ -78,23 +78,11 @@ func WriteJSONResponse(w http.ResponseWriter, options ...OptParams) {
 }
 
 type RepoInterface interface {
-	GetItems(userID int) []*repo.Item
-	AddItem(userID int, items []*repo.Item)
-	RemoveItem(userID int, skuID int)
-	ClearCart(userID int)
+	GetItems(userID int) ([]*repo.Item, error)
+	AddItem(userID int, items []*repo.Item) error
+	RemoveItem(userID int, skuID int) error
+	ClearCart(userID int) error
 }
-
-/*
-func GetMux(r RepoInterface) *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/user/{user_id}/cart", getCart(r))
-	mux.HandleFunc("POST /user/{user_id}/cart/{sku_id}", postAddItem(r))
-	mux.HandleFunc("DELETE /user/{user_id}/cart/{sku_id}", deleteItem(r))
-	mux.HandleFunc("DELETE /user/{user_id}/cart", deleteCart(r))
-	return mux
-}
-
-*/
 
 func (h *Handler) GetMux() *http.ServeMux {
 	mux := http.NewServeMux()
@@ -113,7 +101,10 @@ func (h *Handler) getCart() http.HandlerFunc {
 			WriteJSONResponse(w, WithError(err))
 			return
 		}
-		itemsFromRepo := h.repo.GetItems(int(id))
+		itemsFromRepo, errdb := h.repo.GetItems(int(id))
+		if errdb != nil {
+			WriteJSONResponse(w, WithError(errdb))
+		}
 		// TODO: сортировка по skuID
 
 		var cartResponse CartResponse

@@ -42,15 +42,6 @@ func NewClient(productServiceURL string, token string) *Client {
 	}
 }
 
-//TODO: вспомнить код
-//TODO: перенести код GetProduct на структуру
-//TODO: новый интерфейс для GetProduct
-//TODO: handler только для интерфейса
-//TODO: клиент передаётся через обертку
-//TODO: в тесте реализация интерфейса, которая возвращает заглушку
-//TODO: тест не ходит в реальный ProductService, а в заглушку
-//TODO: остальные тесты
-
 func getProduct(skuID int64) (g GetProductResponse, err error) {
 	reqBody := getProductRequest{
 		Token: Token,

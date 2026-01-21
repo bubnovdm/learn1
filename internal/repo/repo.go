@@ -4,6 +4,8 @@ package repo
  Наше in-memory хранилище, п.3 из Readme
 */
 
+//TODO:поправить под новый интерфейс с error
+
 import "sync"
 
 type Repo struct {
@@ -12,8 +14,8 @@ type Repo struct {
 }
 
 type Item struct {
-	SkuID int    `json:"sku_id"`
-	Count uint16 `json:"count"`
+	SkuID int    `db:"sku_id" json:"sku_id"`
+	Count uint16 `db:"count" json:"count"`
 }
 
 func NewRepo() *Repo {
