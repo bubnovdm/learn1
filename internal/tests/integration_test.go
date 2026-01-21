@@ -3,7 +3,6 @@ package tests
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"learn1/internal/client"
 	h "learn1/internal/http"
 	"learn1/internal/repo"
@@ -12,6 +11,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type NotRealProductClient struct{}

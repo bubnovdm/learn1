@@ -26,6 +26,10 @@ type GetProductResponse struct {
 	Price uint32 `json:"price"`
 }
 
+type ProductClient interface {
+	GetProduct(skuID int64) (GetProductResponse, error)
+}
+
 type Client struct {
 	productServiceURL string
 	token             string
@@ -36,10 +40,6 @@ func NewClient(productServiceURL string, token string) *Client {
 		productServiceURL: productServiceURL,
 		token:             token,
 	}
-}
-
-type ProductClient interface {
-	GetProduct(skuID int64) (GetProductResponse, error)
 }
 
 //TODO: вспомнить код
